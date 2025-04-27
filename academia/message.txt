@@ -1,0 +1,144 @@
+case '3':
+
+			// RECUPERA OS DADOS VINDOS DA REQUISIÇÃO GET
+			$alunoId 			= (isset($_GET['alunoId'])) ? $_GET['alunoId'] : null;
+			$treinoComposicaoId = (isset($_GET['treinoComposicaoId'])) ? $_GET['treinoComposicaoId'] : null;
+
+			// INSTÂNCIA ALUNO
+			$alunov2 	 = new Alunov2();
+			$alunov2->id = $alunoId;
+
+			// DETALHAR ALUNO
+			$detalharAluno = $alunov2->Detalhar();
+
+			$alunoId 	 				= $alunov2->id;
+			$alunoNome 	 				= $alunov2->nome . ' ' . $alunov2->sobrenome;
+			$alunoUltimaAvaliacaoFisica = ($alunov2->dataUltimaAvaliacaoFisica != '0000-00-00') ? implode("/",array_reverse(explode("-",$alunov2->dataUltimaAvaliacaoFisica))) : 'Não realizou, fale com seu professor.';
+
+			// INSTÂNCIA TREINO
+			$treinov2 	  			  = new Treinov2();
+
+			// DETALHAR UMA COMPOSIÇÃO DO TREINO
+			$detalharTreinoComposicao = $treinov2->DetalharItem($treinoComposicaoId);
+
+			// SE NÃO FALAR AO TENTAR DETALHAR UMA COMPOSIÇÃO DE UM TREINO
+			if(!isset($detalharTreinoComposicao['Erro'])){
+
+				// DETALHAR O TREINO
+				$treinov2->id 			  = $detalharTreinoComposicao['idTreino'];
+				$detalharTreino 		  = $treinov2->Detalhar();
+
+				$treinoComposicaoId 			 = $detalharTreinoComposicao['id'];
+				$treinoComposicaoNome 		 	 = $detalharTreinoComposicao['nome'];
+				$treinoComposicaoVezes 			 = $detalharTreinoComposicao['qtdExecutada'];
+				$treinoComposicaoVezesTotal 	 = $detalharTreinoComposicao['qtd'];
+				$treinoComposicaoExerciciosArray = unserialize($detalharTreinoComposicao['exercicios']);
+				$treinoDataHoje					 = date('Y-m-d');
+				$treinoValidade 				 = $treinov2->dataValidade;
+				$treinoInstrucoes 				 = $treinov2->instrucoes;
+
+				// DEFINE A ID DO PROFESSOR BASEADO NO ALUNO
+				$alunoProfessorId 	= $alunov2->idProfessor;
+
+				// INTÂNCIA PROFESSOR
+				$professor 	 	= new Professor();
+				$professor->id 	= $alunoProfessorId;
+
+				// DETALHAR PROFESSOR
+				$detalharProfessor = $professor->Detalhar();
+
+				// SE ENCONTRAR O PROFESSOR
+				if(!isset($detalharProfessor['Erro'])){
+					$alunoProfessorNome = $professor->nome . ' ' . $professor->sobrenome;
+				}else{
+					$alunoProfessorNome = 'N/C';
+				}
+
+				// INCIA VAZIO OS EXERCÍCIOS DA COMPOSIÇÃO PARA QUE SEJA PERCORRIDO O LOOP
+				$treinoComposicaoExercicios = '--------------------------------------------------' . "\r\n";
+				$treinoComposicaoExercicios .= mb_strtoupper(ACADEMIA_NOME) . "\r\n";
+				$treinoComposicaoExercicios .= '--------------------------------------------------' . "\r\n\r\n";
+				$treinoComposicaoExercicios .= 'ALUNO:		' . ucwords(mb_strtolower($alunoNome)) 			. "\r\n";
+				$treinoComposicaoExercicios .= 'CÓDIGO:		' . $alunoId 									. "\r\n";
+				$treinoComposicaoExercicios .= 'PROFESSOR:	' . ucwords(mb_strtolower($alunoProfessorNome)) . "\r\n";
+				$treinoComposicaoExercicios .= 'TREINO:		' . $treinoComposicaoNome . ' (' . (string)($treinoComposicaoVezes + 1) . '/' . $treinoComposicaoVezesTotal . ')' . "\r\n";
+				$treinoComposicaoExercicios .= 'DATA:		' . date('d/m/Y') . "\r\n";	
+				$treinoComposicaoExercicios .= 'VALIDADE:	' . implode("/",array_reverse(explode("-",$treinoValidade))) . "\r\n";	
+				$treinoComposicaoExercicios .= 'ÚLT. AVALIAÇÂO:	' . $alunoUltimaAvaliacaoFisica . "\r\n\r\n";
+				$treinoComposicaoExercicios .= '--------------------------------------------------' . "\r\n";
+				$treinoComposicaoExercicios .= 'EXERCÍCIOS:' . "\r\n";
+				$treinoComposicaoExercicios .= '--------------------------------------------------' . "\r\n";
+
+				if(!empty($treinoComposicaoExerciciosArray)){
+
+					foreach($treinoComposicaoExerciciosArray as $treinoComposicaoGrupoExercicios){
+
+						if($treinoComposicaoGrupoExercicios['grupo'] != ''){
+							$treinoComposicaoExercicios .= '__________________________________________________' . "\r\n";
+							$treinoComposicaoExercicios .= $treinoComposicaoGrupoExercicios['grupo'] . "\r\n";
+							$treinoComposicaoExercicios .= '--------------------------------------------------' . "\r\n";
+						}else{
+							$treinoComposicaoExercicios .= "\r\n";
+						}
+
+						foreach($treinoComposicaoGrupoExercicios['exercicios'] as $treinoComposicaoGrupoExercicio){
+
+							// DETALHAR EXERCICIO PARA NOME
+							$detalharExercicio = $treinov2->DetalharExercicio($treinoComposicaoGrupoExercicio['id']);
+
+							if(!isset($detalharExercicio['Erro'])){
+
+								if($treinoComposicaoGrupoExercicio['series'] == '1'){
+									$treinoComposicaoExercicios .= mb_strtoupper($detalharExercicio['nome']) . "\r\n" . $treinoComposicaoGrupoExercicio['qtd'] . " reps - " . $treinoComposicaoGrupoExercicio['carga'] . "\r\n";
+								}else{
+									$treinoComposicaoExercicios .= mb_strtoupper($detalharExercicio['nome']) . "\r\n" . $treinoComposicaoGrupoExercicio['series'] . " x " . $treinoComposicaoGrupoExercicio['qtd'] . " - " . $treinoComposicaoGrupoExercicio['carga'] . "\r\n";
+								}
+
+							}
+							
+							if($treinoComposicaoGrupoExercicio['obs'] != ''){
+
+								$treinoComposicaoExercicios .= '> ' . $treinoComposicaoGrupoExercicio['obs'] . "\r\n";
+							}
+						
+						}
+
+						if($treinoComposicaoGrupoExercicios['grupo'] != ''){
+							$treinoComposicaoExercicios .= '__________________________________________________' . "\r\n";
+						}else{
+							$treinoComposicaoExercicios .= "\r\n";
+						}
+
+					}
+
+				}
+
+				$treinoComposicaoExercicios .= "\r\n" . '--------------------------------------------------' . "\r\n";
+				$treinoComposicaoExercicios .= 'OBSERVAÇÔES GERAIS:' . "\r\n";
+				$treinoComposicaoExercicios .= '--------------------------------------------------' . "\r\n";
+				$treinoComposicaoExercicios .= $treinoInstrucoes . "\r\n\r\n";
+				$treinoComposicaoExercicios .= '	    Powered by ' . PLATAFORMA_NOME . "\r\n\r\n";
+
+				//echo $treinoComposicaoExercicios;
+				//exit;
+
+				// CADASTRAR ATIVIDADE NA IMPRESSÃO DE TREINOS
+				$alunov2->id = $alunoId;
+				$alunov2->CadastrarAtividadeImpressaoTreinos();
+
+				$retorno['alunoNome']					= ucwords(mb_strtolower($alunoNome));
+				$retorno['alunoId']						= $alunoId;
+				$retorno['professorNome'] 				= ucwords(mb_strtolower($alunoProfessorNome));
+				$retorno['treinoComposicaoId'] 			= $treinoComposicaoId;
+				$retorno['treinoComposicaoNome'] 		= $treinoComposicaoNome;
+				$retorno['treinoComposicaoVezes'] 		= (string)($treinoComposicaoVezes + 1);
+				$retorno['treinoComposicaoVezesTotal'] 	= $treinoComposicaoVezesTotal;
+				$retorno['treinoComposicaoExercicios'] 	= $treinoComposicaoExercicios;
+				$retorno['treinoDataHoje'] 				= $treinoDataHoje;
+				$retorno['treinoValidade'] 				= $treinoValidade;
+				$retorno['treinoInstrucoes'] 			= $treinoInstrucoes;
+
+			}else{
+
+				$retorno['treinoComposicaoId'] = 0;
+			}

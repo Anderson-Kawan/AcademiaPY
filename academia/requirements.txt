@@ -1,0 +1,7 @@
+#Todas as bibliotecas que estão sendo utilizada nesse codigo
+mysql-connector-python
+phpserialize
+pywin32
+pyserial
+Pillow
+python-dotenv
