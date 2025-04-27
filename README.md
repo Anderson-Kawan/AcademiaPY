@@ -25,5 +25,5 @@ Antes de executar o projeto, certifique-se de ter instalado:
 
 1. **Clone o repositório**:
    ```bash
-   git clone https://github.com/seu-usuario/seu-projeto.git
+   git clone https://github.com/Anderson-Kawan/AcademiaPY
    cd seu-projeto
